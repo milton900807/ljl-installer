@@ -8,8 +8,12 @@ ENV_CONFIG_JS="$INSTALL_DIR/env_config.js"
 NGINX_CONFIG="$INSTALL_DIR/nginx.conf"
 LJLPTX_SH="$INSTALL_DIR/ljlptx.sh"
 LJLPTX_SHUTDOWN_SH="$INSTALL_DIR/ljlptx.shutdown.sh"
+LJLUSERS_DIR="$INSTALL_DIR/ljlusers"
+
+mkdir -p "$LJLUSERS_DIR"
 
 echo "Installing files into: $INSTALL_DIR"
+echo "User files will be stored in: $LJLUSERS_DIR"
 
 read -r -p "Tenant ID [11111111-2222-4333-8444-555555555555]: " TENANT_ID
 TENANT_ID="${TENANT_ID:-11111111-2222-4333-8444-555555555555}"
@@ -116,6 +120,12 @@ services:
     image: docker.io/lajollacove/ljlserver:latest
     container_name: ljlserver
     restart: unless-stopped
+    environment:
+      - LJLUSERS=/root/ljusers
+      - USERDATA=/root/ljusers
+      - LJL_USER_DATA=/root/ljusers
+    volumes:
+      - ./ljlusers:/root/ljusers
 
   ljldataserver:
     image: docker.io/lajollacove/ljldataserver:latest
@@ -281,6 +291,8 @@ VENV_DIR="$COMPOSE_DIR/.venv"
 MAX_LOGIN_ATTEMPTS=3
 
 cd "$COMPOSE_DIR"
+
+mkdir -p ./ljlusers
 
 if ! command -v podman >/dev/null 2>&1; then
   echo "ERROR: podman is not installed."
@@ -476,6 +488,10 @@ podman ps -a
 
 echo "ljlptx logs:"
 podman logs --tail 100 ljlptx 2>/dev/null || true
+
+echo
+echo "User files should persist under:"
+echo "  $(pwd)/ljlusers"
 EOF
 
 cat > "$LJLPTX_SHUTDOWN_SH" <<'EOF'
@@ -540,6 +556,10 @@ rm -f "$HOME/.config/cni/net.d/ljconfig_default.conflist" 2>/dev/null || true
 
 echo "Final container state:"
 podman ps -a
+
+echo
+echo "User files are preserved under:"
+echo "  $(pwd)/ljlusers"
 EOF
 
 chmod 644 "$ENV_CONFIG_JS" "$PODMAN_YML" "$NGINX_CONFIG"
@@ -552,6 +572,7 @@ echo "  $ENV_CONFIG_JS"
 echo "  $NGINX_CONFIG"
 echo "  $LJLPTX_SH"
 echo "  $LJLPTX_SHUTDOWN_SH"
+echo "  $LJLUSERS_DIR"
 
 echo
 echo "Run with:"
