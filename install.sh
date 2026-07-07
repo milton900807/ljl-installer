@@ -6,7 +6,7 @@ INSTALL_DIR="$(pwd)"
 PODMAN_YML="$INSTALL_DIR/ljl_podman.yml"
 ENV_CONFIG_JS="$INSTALL_DIR/env_config.js"
 NGINX_CONFIG="$INSTALL_DIR/nginx.conf"
-LJLPTX_SH="$INSTALL_DIR/ljlptx.sh"
+LJLPTX_SH="$INSTALL_DIR/ljlptx.start.sh"
 LJLPTX_SHUTDOWN_SH="$INSTALL_DIR/ljlptx.shutdown.sh"
 LJLUSERS_DIR="$INSTALL_DIR/ljlusers"
 
@@ -27,20 +27,16 @@ SHAREPOINT_HOST="${SHAREPOINT_HOST:-mysharepoint.sharepoint.com}"
 read -r -p "Theme [La Jolla Labs]: " THEME
 THEME="${THEME:-La Jolla Labs}"
 
-read -r -p "API URL [https://data.lajollalabs.com/ionworks]: " API_URL
-API_URL="${API_URL:-https://data.lajollalabs.com/ionworks}"
-
-read -r -p "App host [https://data.lajollalabs.com]: " APP_HOST
-APP_HOST="${APP_HOST:-https://data.lajollalabs.com}"
-
 read -r -p "Offtarget URL [https://levenshtein.lajollalabs.com/levenshtein/]: " OFFTARGET_URL
 OFFTARGET_URL="${OFFTARGET_URL:-https://levenshtein.lajollalabs.com/levenshtein/}"
 
-read -r -p "Redirect URL [https://data.lajollalabs.com]: " REDIRECT_URL
-REDIRECT_URL="${REDIRECT_URL:-https://data.lajollalabs.com}"
+read -r -p "App host [https://data.lajollalabs.com]: " APP_HOST
+APP_HOST="${APP_HOST:-https://data.lajollalabs.com}"
+APP_HOST="${APP_HOST%/}"
 
-read -r -p "Post redirect URL [https://data.lajollalabs.com/app/ljl/init]: " POST_REDIRECT_URL
-POST_REDIRECT_URL="${POST_REDIRECT_URL:-https://data.lajollalabs.com/app/ljl/init}"
+API_URL="${APP_HOST}/ionworks"
+REDIRECT_URL="$APP_HOST"
+POST_REDIRECT_URL="$APP_HOST"
 
 read -r -p "Nginx server name [*.lajollalabs.com]: " NGINX_SERVER_NAME
 NGINX_SERVER_NAME="${NGINX_SERVER_NAME:-*.lajollalabs.com}"
@@ -178,7 +174,10 @@ services:
       - "443:443"
     command: >
       sh -lc '
-        nginx -g "daemon off;"
+        set -ex;
+        cp -f /ljconfig/env_config.js /eln/assets/env.js;
+        nginx -t;
+        exec nginx -g "daemon off;";
       '
 
 volumes:
@@ -576,7 +575,7 @@ echo "  $LJLUSERS_DIR"
 
 echo
 echo "Run with:"
-echo "  ./ljlptx.sh"
+echo "  ./ljlptx.start.sh"
 
 echo
 echo "Shutdown with:"
